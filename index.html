@@ -64,24 +64,33 @@ form button {
 <script src="//code.jquery.com/jquery-1.11.1.js"></script>
 <script>
 	var socket = io();
+
+	// $('form').submit(function () {
+	// 	socket.emit('chat message', $('#m').val());
+	// 	$('#m').val('');
+	// 	return false;
+	// })
+
+	// socket.on('chat message', function (msg) {
+	// 	$('#messages').append($('<li>').text(msg));
+	// })
+
 	$('form').submit(function () {
-		socket.emit('chat message', $('#m').val());
+		//console.log("value----", $('#m').val())
+		socket.emit('add-message', {
+			fromUserId: 'test1',
+			toUserId: 'test2',
+			message: $('#m').val()
+		});
 		$('#m').val('');
 		return false;
 	})
 
-	socket.on('chat message', function (msg) {
-		$('#messages').append($('<li>').text(msg));
-	})
 
-	$('form').submit(function () {
-		socket.emit('add-message', $('#m').val());
-		$('#m').val('');
-		return false;
-	})
 
-	socket.on('add-message-response', function (msg) {
-		$('#messages').append($('<li>').text(msg));
+	socket.on('add-message-response', function (data) {
+		
+		$('#messages').append($('<li>').text(data.message));
 	})
 </script>
 

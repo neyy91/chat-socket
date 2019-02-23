@@ -48,9 +48,7 @@ class Socket{
 
 
             socket.on('add-message', async (data) => {
-
-                // console.log("data------",data)
-                
+            
                 if (data.message === '') {
                     
                     this.io.to(socket.id).emit(`add-message-response`,`Message cant be empty`); 
@@ -65,12 +63,22 @@ class Socket{
 
                 }else{                    
                     let toSocketId = data.toSocketId;
-                    const sqlResult = await helper.insertMessages({
+
+                   
+
+                    let dataMsg = {
                         fromUserId: data.fromUserId,
                         toUserId: data.toUserId,
                         message: data.message
-                    });
-                    this.io.to(toSocketId).emit(`add-message-response`, data); 
+                    }
+
+                  
+
+                    const sqlResult = await helper.insertMessages(dataMsg);
+
+
+                    // this.io.to(toSocketId).emit(`add-message-response`, data); 
+                    this.io.emit(`add-message-response`, data); 
                 }               
             });
 
