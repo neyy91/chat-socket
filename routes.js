@@ -53,7 +53,7 @@ class Routes{
 					});
 				}
 			}
-		});		
+		});	
 
 		this.app.post('/registerUser', async (request,response) => {
 			const regRes = {}
@@ -161,8 +161,10 @@ class Routes{
 		});
 		
 		this.app.get('*',(request,response) =>{
-            // response.sendFile(path.join(__dirname + '../../client/views/index.html'));
-            response.sendFile(path.join(__dirname + '/index.html'));
+			
+			// response.sendFile(path.join(__dirname + '../../client/views/index.html'));
+			response.sendFile(path.join(__dirname + '/client/views/index.html'));
+            // response.sendFile(path.join(__dirname + '/index.html'));
 			
 		});		
 	}

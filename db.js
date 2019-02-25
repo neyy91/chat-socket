@@ -15,6 +15,8 @@ class Db {
 
     query(sql, arg) {
         return new Promise((resolve, reject) => {
+
+            // console.log("----2----",sql, arg)
             this.connection.query(sql, arg, (err, rows) => {
                 if(err) {
                     return reject(err);

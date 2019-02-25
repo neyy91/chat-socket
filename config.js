@@ -1,17 +1,27 @@
 class Config {
     constructor(app) {
-        //need add template
-        app.get('/', function (req, res) {
-            res.sendFile(__dirname + '/index.html');
-        });
+
+        // Setting .html as the default template extension
+        app.set('view engine', 'html');
+
+        // Telling express where it can find the templates
+        app.set('views', (__dirname + './../views'));
+
+        //Files 
+        app.use(require('express').static(require('path').join('client')));
+
+
     }
 }
+// function checkAuth(req, res, next) {
+//     return console.log("----check auth----")
+//     next();
+// }
 
 
-
-function ExtractJwt (req) {
+function ExtractJwt(req) {
     let token = null;
-    if(req.cookies && req.cookies.token != void(0)) token = req.cookies['token'];
+    if (req.cookies && req.cookies.token != void(0)) token = req.cookies['token'];
     return token;
 }
 
