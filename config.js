@@ -13,10 +13,6 @@ class Config {
 
     }
 }
-// function checkAuth(req, res, next) {
-//     return console.log("----check auth----")
-//     next();
-// }
 
 
 function ExtractJwt(req) {

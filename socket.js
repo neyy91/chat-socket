@@ -154,8 +154,8 @@ class Socket{
             let userId = socket.request._query['userId'];
             let userSocketId = socket.id;       
             
-            console.log("---socket---",socket.id)
-            console.log("---userId---",userId)
+            // console.log("---socket---",socket.id)
+            // console.log("---userId---",userId)
 
             const response = await helper.addSocketId( userId, userSocketId);
            

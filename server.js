@@ -7,10 +7,6 @@ const bodyParser = require('body-parser');
 const socketEvents = require('./socket'); 
 const routes = require('./routes'); 
 const allConfigs = require('./config');
-const redis = require("./redis");
-
-
-
 
 class Server {
     constructor() {
@@ -35,16 +31,9 @@ class Server {
         new socketEvents(this.socket).socketConfig();
     }
 
-    initRedis() {
-        new redis()
-    }
-
-    
-
     appExecute() {
         this.appConfig();
         this.includeRoutes();
-        this.initRedis();
 
         this.http.listen(this.port, this.host, () => {
             console.log(`Listening on http://${this.host}:${this.port}`);
