@@ -29,6 +29,7 @@ $('form').on('submit', e => {
     e.preventDefault();
     let value = $(e.target).attr('class');
     let selector = '.' + value;
+
     $.ajax({
         url: '/' + value,
         type: 'POST',
@@ -36,17 +37,24 @@ $('form').on('submit', e => {
             username: $(selector + ' [name=username]').val(),
             password: $(selector + ' [name=password]').val()
         },
-        beforeSend: () => {
+        beforeSend: (request) => {
             $(selector + ' button').prop('disabled', true);
+            request.setRequestHeader("authorization", 'test - checkToken');
         },
         success: (res) => {
+          
             alert(response(res));
-            location.reload();
+            // location.reload();
+            location.href = '/chat';
+            // location.src = res.url
+           
         },
         error: (res) => {
+         
             alert(response(res));
         },
-        complete: () => {
+        complete: (res) => {
+           
             $(selector + ' button').prop('disabled', false);
         }
     })

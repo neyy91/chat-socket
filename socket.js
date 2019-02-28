@@ -17,7 +17,8 @@ function auth (socket, next) {
     // JWT authenticate
     passport.authenticate('jwt', {session: false}, function (error, decryptToken, jwtError) {
         if(!error && !jwtError && decryptToken) {
-            next(false, {username: decryptToken.username, id: decryptToken.id});
+            // next(false, {username: decryptToken.username, id: decryptToken.id});
+            next(false, {username: decryptToken.username, id: decryptToken.id})
         } else {
             next('guest');
         }
@@ -38,15 +39,15 @@ class Socket{
         this.io.on('connection', (socket) => {
             console.log("user connected")
 
-            // auth(socket, (guest, user) => {
-            //     if(!guest) {
-            //         socket.join('all');
-            //         socket.username = user.username;
-            //         socket.emit('connected', `you are connected to chat as ${user.username}`);
-            //     } else  {
-            //         console.log("-----guest",guest)
-            //     }
-            // });
+            auth(socket, (guest, user) => {
+                if(!guest) {
+                    socket.join('all');
+                    socket.username = user.username;
+                    socket.emit('connected', `you are connected to chat as ${user.username}`);
+                } else  {
+                    console.log("--user---",guest)
+                }
+            });
 
             // get the user's Chat list
            
@@ -82,6 +83,14 @@ class Socket{
 
 
             socket.on('add-message', async (data) => {
+
+                const objNewMsg = {
+                    date: new Date(),
+                    content: data,
+                    username: socket.username
+                };
+
+                console.log("data msg-------",objNewMsg)
             
                 if (data.message === '') {
                     
@@ -112,7 +121,8 @@ class Socket{
 
 
                     // this.io.to(toSocketId).emit(`add-message-response`, data); 
-                    this.io.emit(`add-message-response`, data); 
+                    // this.io.emit(`add-message-response`, objNewMsg); 
+                    this.io.to('all').emit("add-message-response", objNewMsg);
                 }               
             });
 
@@ -126,6 +136,41 @@ class Socket{
                 });
                 socket.disconnect();
             });
+
+
+            socket.on('receiveHistory', async (req, res) => {
+                let getHistory = await helper.getMessages(null,null) 
+                getHistory =  JSON.stringify({
+                    date: new Date().getTime(),
+                    username: 'Tets-user-1',
+                    content: 'test text msg!'
+                })
+                console.log("check history-----",getHistory)
+                this.io.to('all').emit("history", getHistory);
+            })
+
+
+            // this.app.post('/getMessages', async (request, response) => {
+            //     const userId = request.body.userId;
+            //     const toUserId = request.body.toUserId;
+            //     const messages = {}
+            //     if (userId === '') {
+            //         messages.error = true;
+            //         messages.message = `userId cant be empty.`;
+            //         response.status(200).json(messages);
+            //     } else {
+            //         const result = await helper.getMessages(userId, toUserId);
+            //         if (result === null) {
+            //             messages.error = true;
+            //             messages.message = `Internal Server error.`;
+            //             response.status(500).json(messages);
+            //         } else {
+            //             messages.error = false;
+            //             messages.messages = result;
+            //             response.status(200).json(messages);
+            //         }
+            //     }
+            // });
 
 
             //disconect from socket.

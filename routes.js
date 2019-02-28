@@ -11,16 +11,28 @@ var cache = require('express-redis-cache')({
 })
 
 
+var bodyParser = require('body-parser');
+
+
+const config = require('./config');
+function createToken (body) {
+    return jwt.sign(
+        body,
+        config.jwt.secretOrKey,
+        {expiresIn: config.expiresIn}
+    );
+}
+
 
 // token : user <access_token>
 
 function verifyToken(req, res, next) {
 	let userHeader = req.headers['authorization']
-
+console.log("-----------------userHeader----------------",userHeader)
 	if (typeof userHeader !== 'undefined') {
 
 		let userus = userHeader.split(' ');
-//check redis
+		//check redis
 		cache.get(userus[0], function (error, entries) {
 
 			if (error) {
@@ -48,17 +60,16 @@ class Routes {
 
 		this.app = app;
 		this.cache = cache
+
+		this.app.use(bodyParser.json()); // support json encoded bodies
+		this.app.use(bodyParser.urlencoded({
+			extended: true
+		})); // support encoded bodies
 	}
 
 	appRoutes() {
 
-		// this.app.get('/', checkAuth, (req, res) => {
-		// 	console.log("----------->>>s",res)
-		// 	res.render('index.html', { username: req.user.username });
-		// });
-
-
-////to check middlewar token
+		////to check middlewar token
 		this.app.post('/api/posts', verifyToken, (req, res) => {
 			jwt.verify(req.token, 'secretKey', (err, authData) => {
 				if (err) {
@@ -72,9 +83,9 @@ class Routes {
 			})
 
 		})
-////!get token
+		////!get token
 		this.app.post('/api/token', (req, res) => {
-			
+
 			const user = {
 				id: 1,
 				userName: "Lex",
@@ -95,7 +106,7 @@ class Routes {
 						type: 'json'
 					},
 					function (error, added) {
-						
+
 						res.json({
 							token
 						})
@@ -154,11 +165,14 @@ class Routes {
 					regRes.userId = result.insertId;
 					regRes.message = result.insertId + `<<<---was registr OK`;
 					response.status(200).json(regRes);
+
+					// response.sendFile(path.join(__dirname + '/client/views/auth.html'));
 				}
 			}
 		});
 
-		this.app.post('/login', async (request, response) => {
+		this.app.post('/login',verifyToken ,async (request, response) => {
+			console.log("---auth----",request.headers['authorization'])
 			const loginRes = {}
 			const data = {
 				username: (request.body.username).toLowerCase(),
@@ -182,10 +196,31 @@ class Routes {
 					loginRes.error = false;
 					loginRes.userId = result[0].id;
 					loginRes.message = `User logged in.`;
+					loginRes.url = path.join(__dirname + '/client/views/auth.html');
+
+
+					const token = createToken({
+						id: result[0].id,
+						username: request.body.username
+					});
+					response.cookie('token', token, {
+						httpOnly: true
+					});
+
+					
+
+					console.log("main--->>>>",path.join(__dirname + '/client/views/auth.html'))					
 					response.status(200).json(loginRes);
 				}
 			}
 		});
+
+		this.app.get('/chat', async (request, response) => {
+			
+			response.sendFile(path.join(__dirname + '/client/views/auth.html'));
+		})
+
+
 
 		this.app.post('/userSessionCheck', async (request, response) => {
 
@@ -236,6 +271,8 @@ class Routes {
 		this.app.get('/', (req, res) => {
 			res.sendFile(path.join(__dirname + '/client/views/unauth.html'));
 		});
+
+	
 
 		// this.app.get('*', (request, response) => {
 		// 	// response.sendFile(path.join(__dirname + '../../client/views/index.html'));

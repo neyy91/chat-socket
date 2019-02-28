@@ -8,6 +8,15 @@ const socketEvents = require('./socket');
 const routes = require('./routes'); 
 const allConfigs = require('./config');
 
+const passport = require('passport');
+const { Strategy } = require('passport-jwt');
+const { jwt } = require('./config');
+
+passport.use(new Strategy(jwt, function(jwt_payload, done) {
+    if(jwt_payload != void(0)) return done(false, jwt_payload);
+    done();
+}));
+
 class Server {
     constructor() {
         this.port = 3000;
