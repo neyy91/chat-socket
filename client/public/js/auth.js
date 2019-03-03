@@ -53,6 +53,13 @@ function changeChat() {
     socket.emit('receiveHistory',currentChat);
 }
 
+function changeStatusBlock(blockStatus) {
+    var changeStatusUser = blockStatus ? 'selectBlock' : 'selectUnblock'
+    // _clearVars()
+    var user =  document.getElementById(changeStatusUser).value;
+    console.log("------>>>>>>",user)
+}
+
 var socket = io.connect('http://localhost:3000');
 $(document).ready(() => {
     

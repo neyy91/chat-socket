@@ -15,16 +15,26 @@
         <div class="chat">
             <div class="chat-header clearfix">
                 <div class="chat-about">
-                    <div class="chat-num-users">Hello, <span id="name" style="color:darkblue;"></span> start chat with : </div>
+                    <div class="chat-num-users change-block">Hello, <span id="name" style="color:darkblue;"></span> start chat with : 
+                        <div class="pick-chat">
+                                <select onchange="changeChat()" id="selectChatId"></select>
+                            </div></div>
                     <div>
                         <div  class="chat-num-users">Block list: </div>
-                        <div  class="chat-num-users">Unblock</div>
+                        <div class="change-block">
+                            <div class="chat-num-users change-block">Block: 
+                                <div class="pick-chat">
+                                    <select onchange="changeStatusBlock(true)" id="selectBlock"></select>
+                                </div>
+                            </div>
+                            <div class="chat-num-users change-block">Unblock:
+                                <div class="pick-chat">
+                                    <select onchange="changeStatusBlock(false)" id="selectUnblock"></select>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-         
-                <div class="pick-chat">
-                    <select onchange="changeChat()" id="selectChatId"></select>
-                </div>
+                </div>          
 
                 <div class="controls">
                     <a href="#" class="logout-btn">Logout</a>
