@@ -247,30 +247,15 @@ class Routes {
 			}
 		});
 
-		this.app.post('/getMessages', async (request, response) => {
-			const userId = request.body.userId;
-			const toUserId = request.body.toUserId;
-			const messages = {}
-			if (userId === '') {
-				messages.error = true;
-				messages.message = `userId cant be empty.`;
-				response.status(200).json(messages);
-			} else {
-				const result = await helper.getMessages(userId, toUserId);
-				if (result === null) {
-					messages.error = true;
-					messages.message = `Internal Server error.`;
-					response.status(500).json(messages);
-				} else {
-					messages.error = false;
-					messages.messages = result;
-					response.status(200).json(messages);
-				}
-			}
-		});
 		this.app.get('/', (req, res) => {
 			res.sendFile(path.join(__dirname + '/client/views/unauth.html'));
 		});
+
+		this.app.post('/logout', (req, res) => {
+			res.clearCookie('token');
+			// res.status(200).send({message: "Logout success."});
+			res.sendFile(path.join(__dirname + '/client/views/unauth.html'));
+		})
 
 	
 

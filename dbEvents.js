@@ -63,6 +63,10 @@ class Helper{
 		return await this.db.query(`UPDATE user SET socketid = ?, online= ? WHERE socketid = ?`, ['','N',userSocketId]);
 	}
 
+	getAllList() {
+		return	this.db.query('SELECT id,username,online,socketid FROM user')
+	}
+
 	getChatList(userId, userSocketId){
 		try {
 			return Promise.all([
@@ -97,14 +101,26 @@ class Helper{
 
 	async getMessages(userId, toUserId){
 		try {
-			return await this.db.query(
-				`SELECT id,from_user_id as fromUserId,to_user_id as toUserId,message FROM message WHERE 
-					(from_user_id = ? AND to_user_id = ? )
-					OR
-					(from_user_id = ? AND to_user_id = ? )	ORDER BY id ASC				
-				`,
-				[userId, toUserId, toUserId, userId]
-			);
+			if (toUserId == 'all') {
+				return await this.db.query(
+					`SELECT id,from_user_id as fromUserId,to_user_id as toUserId,message,date FROM message WHERE 
+						(to_user_id = ? ) ORDER BY id ASC				
+					`,
+					[toUserId]
+				)
+			} else {
+				return await this.db.query(
+					`SELECT id,from_user_id as fromUserId,to_user_id as toUserId,message,date FROM message WHERE 
+						(from_user_id = ? AND to_user_id = ? )
+						OR
+						(from_user_id = ? AND to_user_id = ? )	ORDER BY id ASC				
+					`,
+					[userId, toUserId, toUserId, userId]
+				)
+			}
+			
+
+
 		} catch (error) {
 			console.warn(error);
 			return null;

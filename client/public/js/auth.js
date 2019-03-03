@@ -1,10 +1,17 @@
 console.log("-----auth-----")
 
-function response (data) {
-    console.log(data,"<<<<<<<<<<----------------")
+
+var currentChat = 'all'
+var listChats;
+
+function _clearVars() {
+    $("li").remove()
+}
+
+function response(data) {
     let resp = data.responseText;
     try {
-        if (data.message != void (0)) {
+        if (data.message != void(0)) {
             resp = data.message;
         } else {
             resp = JSON.parse(data.responseText);
@@ -16,14 +23,15 @@ function response (data) {
 
 $(".logout-btn").on('click', e => {
     e.preventDefault();
+    socket.emit('logout');
     $.ajax({
-        //need change to .emit('logout-response') --->> logout, for close socket
         url: '/logout',
         type: 'POST',
         data: {},
         success: (res) => {
             alert(response(res));
-            location.reload();
+            // location.reload();
+            location.href = '/';
         },
         error: (res) => {
             alert(response(res));
@@ -31,23 +39,44 @@ $(".logout-btn").on('click', e => {
     });
 });
 
-$( document ).ready( () => {
-    var socket = io.connect('http://localhost:3000');
-    socket.on('connected', function (msg) {
-        console.log(msg);
-        socket.emit('receiveHistory');
+$("#send").keyup(function (event) {
+    if (event.keyCode == 13) {
+        $("#sendButton").click();
+        $(this).val('');
+    }
+});
+
+
+function changeChat() {
+    currentChat = document.getElementById("selectChatId").value;
+    _clearVars()
+    socket.emit('receiveHistory',currentChat);
+}
+
+var socket = io.connect('http://localhost:3000');
+$(document).ready(() => {
+    
+    socket.on('connected', function (result) {
+        _clearVars()
+        document.getElementById('name').innerHTML = result.userId;
+        socket.emit('receiveHistory',currentChat);
+        socket.emit('chat-list-all','all')
     });
 
-    // socket.on('add-message', addMessage);
+    socket.on('chat-list-all-response',chatList)
 
     socket.on('add-message-response', addMessage);
 
     socket.on('history', messages => {
-        /// to do : need update  api del --->>> /getMessages
-        console.log("----check history----",messages)
+
         for (let message of messages) {
-           
-            addMessage(message);
+            let msg = {
+                date: message.date,
+                username: message.fromUserId,
+                message: message.message
+            }
+          
+            addMessage(msg);
         }
     });
 
@@ -55,24 +84,46 @@ $( document ).ready( () => {
         e.preventDefault();
 
         var selector = $("textarea[name='message']");
-        var messageContent = selector.val().trim();
-        console.log(messageContent);
-        if(messageContent !== '') {
+        var message = selector.val().trim();
+        if (message !== '') {
 
-            socket.emit('add-message', messageContent);
+            socket.emit('add-message',{
+                toUserId: currentChat,
+                message: message
+            } );
 
             selector.val('');
         }
     });
 
-    function encodeHTML (str){
+
+ 
+    function chatList(listInfo) {
+        if (listChats) {
+            return
+        } else {
+            var options = `<option class="pick-option" id="tag_all" value="all">all</option>`
+            listInfo.list.map(user => {
+                if (listInfo.username != user.username) {
+                    options = options + `<option class="pick-option" id="tag_${user.id}" value="${user.username}">${user.username}</option>`
+                }
+            })
+    
+            var html = options
+            listChats = html
+            $(html).appendTo('.pick-chat select');
+        }
+    }
+
+    function encodeHTML(str) {
         return $('<div />').text(str).html();
     }
 
     function addMessage(message) {
-        message.date      = (new Date(message.date)).toLocaleString();
-        message.username  = encodeHTML(message.username);
-        message.content   = encodeHTML(message.content);
+      
+        message.date = (new Date(message.date)).toLocaleString();
+        message.username = encodeHTML(message.username);
+        message.message = encodeHTML(message.message);
 
         var html = `
             <li>
@@ -80,11 +131,13 @@ $( document ).ready( () => {
                     <span class="message-data-name">${message.username}</span>
                     <span class="message-data-time">${message.date}</span>
                 </div>
-                <div class="message my-message" dir="auto">${message.content}</div>
+                <div class="message my-message" dir="auto">${message.message}</div>
             </li>`;
 
         $(html).hide().appendTo('.chat-history ul').slideDown(200);
 
-        $(".chat-history").animate({ scrollTop: $('.chat-history')[0].scrollHeight}, 1000);
+        $(".chat-history").animate({
+            scrollTop: $('.chat-history')[0].scrollHeight
+        }, 1000);
     }
 });

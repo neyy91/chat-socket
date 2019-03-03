@@ -93,7 +93,8 @@ body {
     padding: 10px 30px 20px;
     border-bottom: 2px solid white;
     overflow-y: scroll;
-    max-height: 580px;
+    /* max-height: 580px; */
+    max-height: 480px;
 }
 .chat .chat-history .message-data {
     margin-bottom: 15px;
