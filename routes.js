@@ -15,12 +15,14 @@ var bodyParser = require('body-parser');
 
 
 const config = require('./config');
-function createToken (body) {
-    return jwt.sign(
-        body,
-        config.jwt.secretOrKey,
-        {expiresIn: config.expiresIn}
-    );
+
+function createToken(body) {
+	return jwt.sign(
+		body,
+		config.jwt.secretOrKey, {
+			expiresIn: config.expiresIn
+		}
+	);
 }
 
 
@@ -28,7 +30,7 @@ function createToken (body) {
 
 function verifyToken(req, res, next) {
 	let userHeader = req.headers['authorization']
-console.log("-----------------userHeader----------------",userHeader)
+
 	if (typeof userHeader !== 'undefined') {
 
 		let userus = userHeader.split(' ');
@@ -83,7 +85,7 @@ class Routes {
 			})
 
 		})
-		////!get token
+		
 		this.app.post('/api/token', (req, res) => {
 
 			const user = {
@@ -113,6 +115,29 @@ class Routes {
 					});
 			})
 
+		})
+
+		this.app.post('/changeStatusBlock', verifyToken, async (request, response) => {
+
+			let dataChange = {
+				from: request.body.currentUser,
+				to: request.body.userChange,
+				blockStatus: request.body.blockStatus == 'true' ? 1 : 0
+			}
+			let textAlert ='change status ' + ( request.body.blockStatus == 'true' ? 'block : ' : 'unblock : ') + request.body.userChange
+			try {
+				await helper.changeStatusBlock(dataChange)
+
+				response.status(200).json({
+					error: false,
+					message: textAlert
+				});
+			} catch (e) {
+				response.status(403).json({
+					error: true,
+					message: textAlert
+				});
+			}
 		})
 
 
@@ -146,7 +171,7 @@ class Routes {
 				username: (request.body.username).toLowerCase(),
 				password: request.body.password
 			};
-			if (data.username === '') {
+			if (data.username === '' || data.username === 'all') {
 				regRes.error = true;
 				regRes.message = `username required`;
 				response.status(412).json(regRes);
@@ -163,7 +188,7 @@ class Routes {
 				} else {
 					regRes.error = false;
 					regRes.userId = result.insertId;
-					regRes.message = result.insertId + `<<<---was registr OK`;
+					regRes.message = result.insertId + `<<<---was registr. Now, please sign in`;
 					response.status(200).json(regRes);
 
 					// response.sendFile(path.join(__dirname + '/client/views/auth.html'));
@@ -171,8 +196,8 @@ class Routes {
 			}
 		});
 
-		this.app.post('/login',verifyToken ,async (request, response) => {
-			console.log("---auth----",request.headers['authorization'])
+		this.app.post('/login', verifyToken, async (request, response) => {
+			// console.log("---auth----", request.headers['authorization'])
 			const loginRes = {}
 			const data = {
 				username: (request.body.username).toLowerCase(),
@@ -203,20 +228,20 @@ class Routes {
 						id: result[0].id,
 						username: request.body.username
 					});
+
+					
 					response.cookie('token', token, {
 						httpOnly: true
 					});
 
 					
-
-					console.log("main--->>>>",path.join(__dirname + '/client/views/auth.html'))					
 					response.status(200).json(loginRes);
 				}
 			}
 		});
 
 		this.app.get('/chat', async (request, response) => {
-			
+
 			response.sendFile(path.join(__dirname + '/client/views/auth.html'));
 		})
 
@@ -257,14 +282,6 @@ class Routes {
 			res.sendFile(path.join(__dirname + '/client/views/unauth.html'));
 		})
 
-	
-
-		// this.app.get('*', (request, response) => {
-		// 	// response.sendFile(path.join(__dirname + '../../client/views/index.html'));
-		// 	// response.sendFile(path.join(__dirname + '/index.html'));
-		// 	// response.sendFile(path.join(__dirname + '/client/views/index.html'));
-		// 	response.sendFile(path.join(__dirname + '/client/views/unauth.html'));
-		// });
 	}
 
 	routesConfig() {

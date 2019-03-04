@@ -1,15 +1,14 @@
-console.log("-----auth-----")
-
 
 var currentChat = 'all'
 var listChats;
+var currentUser;
 
 function _clearVars() {
     $("li").remove()
 }
 
 function response(data) {
-    let resp = data.responseText;
+    let resp = data.responseText || 'success';
     try {
         if (data.message != void(0)) {
             resp = data.message;
@@ -48,42 +47,64 @@ $("#send").keyup(function (event) {
 
 
 function changeChat() {
+   
     currentChat = document.getElementById("selectChatId").value;
     _clearVars()
-    socket.emit('receiveHistory',currentChat);
+    socket.emit('receiveHistory', currentChat);
 }
 
 function changeStatusBlock(blockStatus) {
     var changeStatusUser = blockStatus ? 'selectBlock' : 'selectUnblock'
     // _clearVars()
-    var user =  document.getElementById(changeStatusUser).value;
-    console.log("------>>>>>>",user)
+    var user = document.getElementById(changeStatusUser).value;
+   
+
+    $.ajax({
+        url: '/changeStatusBlock',
+        type: 'POST',
+        data: {
+            blockStatus: blockStatus,
+            userChange: user,
+            currentUser: currentUser
+
+        },
+        beforeSend: (request) => {
+            request.setRequestHeader("authorization", 'test - checkToken');
+        },
+        success: (res) => {
+            alert(response(res));
+        },
+        error: (res) => {
+            alert(response(res));
+        }
+    });
+
 }
 
 var socket = io.connect('http://localhost:3000');
 $(document).ready(() => {
-    
+
     socket.on('connected', function (result) {
+
         _clearVars()
         document.getElementById('name').innerHTML = result.userId;
-        socket.emit('receiveHistory',currentChat);
-        socket.emit('chat-list-all','all')
+        currentUser = result.userId
+
+        socket.emit('receiveHistory', currentChat);
+        socket.emit('chat-list-all', 'all')
     });
 
-    socket.on('chat-list-all-response',chatList)
+    socket.on('chat-list-all-response', chatList)
 
-    socket.on('add-message-response', addMessage);
+    socket.on('add-message-response', newMsg => {
+        checkAdd(newMsg)
+    });
 
-    socket.on('history', messages => {
-
-        for (let message of messages) {
-            let msg = {
-                date: message.date,
-                username: message.fromUserId,
-                message: message.message
+    socket.on('history', data => {
+        if (data.requestUser == currentUser) {
+            for (let newMsg of data.history) {
+                checkAdd(newMsg)
             }
-          
-            addMessage(msg);
         }
     });
 
@@ -93,18 +114,18 @@ $(document).ready(() => {
         var selector = $("textarea[name='message']");
         var message = selector.val().trim();
         if (message !== '') {
-
-            socket.emit('add-message',{
+           
+            socket.emit('add-message', {
                 toUserId: currentChat,
                 message: message
-            } );
+            });
 
             selector.val('');
         }
     });
 
 
- 
+
     function chatList(listInfo) {
         if (listChats) {
             return
@@ -115,7 +136,7 @@ $(document).ready(() => {
                     options = options + `<option class="pick-option" id="tag_${user.id}" value="${user.username}">${user.username}</option>`
                 }
             })
-    
+
             var html = options
             listChats = html
             $(html).appendTo('.pick-chat select');
@@ -126,10 +147,26 @@ $(document).ready(() => {
         return $('<div />').text(str).html();
     }
 
-    function addMessage(message) {
+    function checkAdd(newMsg) {
       
+        if (newMsg.block_status == 1 && newMsg.fromUserId != currentUser) {
+            return
+        }
+     
+        if ((newMsg.fromUserId == currentChat && newMsg.toUserId == currentUser) ||  newMsg.fromUserId == currentUser ) {
+            addMessage(newMsg);
+        } else {
+            if (newMsg.toUserId != currentChat) {
+                return
+            }
+            addMessage(newMsg);
+        }
+    }
+
+    function addMessage(message) {
+
         message.date = (new Date(message.date)).toLocaleString();
-        message.username = encodeHTML(message.username);
+        message.username = encodeHTML(message.fromUserId); //message.username || 
         message.message = encodeHTML(message.message);
 
         var html = `
@@ -141,10 +178,11 @@ $(document).ready(() => {
                 <div class="message my-message" dir="auto">${message.message}</div>
             </li>`;
 
-        $(html).hide().appendTo('.chat-history ul').slideDown(200);
+        $(html).hide().appendTo('.chat-history ul').slideDown(2); //200
 
         $(".chat-history").animate({
             scrollTop: $('.chat-history')[0].scrollHeight
-        }, 1000);
+        }, 100); //1000
+        
     }
 });

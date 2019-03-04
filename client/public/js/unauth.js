@@ -1,4 +1,3 @@
-console.log("-----unauth-----")
 
 $('form .message a').on('click', e => {
     e.preventDefault();
@@ -12,7 +11,7 @@ $('form .message a').on('click', e => {
 });
 
 function response (data) {
-    console.log(("----data----",data))
+  
     let resp = data.responseText;
     try {
         if (data.message != void (0)) {
@@ -44,9 +43,12 @@ $('form').on('submit', e => {
         success: (res) => {
           
             alert(response(res));
-            // location.reload();
-            location.href = '/chat';
-            // location.src = res.url
+          
+            if (value == 'login') {
+                location.href = '/chat';
+            } else {
+                location.reload();
+            }
            
         },
         error: (res) => {

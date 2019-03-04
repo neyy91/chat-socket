@@ -44,7 +44,7 @@ class Socket {
             auth(socket, (guest, user) => {
                 if (!guest) {
                     socket.join('all');
-                    console.log("OBD----", socket.id)
+                    console.log("socket id----", socket.id)
                     socket.username = user.username;
                     socket.emit('connected', {
                         msg: `you are connected to chat as ${user.username}`,
@@ -108,22 +108,24 @@ class Socket {
                     this.io.to(socket.id).emit(`add-message-response`, `Select a user to chat.`);
 
                 } else {
-                    let toSocketId = data.toSocketId;
 
+                    let checkBlockStatus = await helper.checkBlockStatus({
+                        to : socket.username,
+                        from: data.toUserId
+                    })
+                    
                     const objNewMsg = {
                         toUserId: data.toUserId,
                         message: data.message,
-                        fromUserId: socket.username
+                        fromUserId: socket.username,
+                        block_status: checkBlockStatus[0].block_status,   
+                        date: new Date()
                     };
 
+                   
+                    await helper.insertMessages(objNewMsg);
+                   
 
-                    const sqlResult = await helper.insertMessages(objNewMsg);
-
-
-                    objNewMsg.date = new Date()
-
-                    // this.io.to(toSocketId).emit(`add-message-response`, data); 
-                    // this.io.emit(`add-message-response`, objNewMsg); 
                     this.io.to('all').emit("add-message-response", objNewMsg);
                 }
             });
@@ -146,7 +148,10 @@ class Socket {
                 let getHistory = await helper.getMessages(socket.username, chatId)
 
                 // this.io.to('all').emit("history", [getHistory]);
-                this.io.to('all').emit("history", getHistory);
+                this.io.to('all').emit("history", {
+                    requestUser: socket.username,
+                    history: getHistory
+                });
             })
 
             //disconect from socket.

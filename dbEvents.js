@@ -90,27 +90,69 @@ class Helper{
 	async insertMessages(params){
 		try {
 			return await this.db.query(
-				"INSERT INTO message (`from_user_id`,`to_user_id`,`message`) values (?,?,?)",
-				[params.fromUserId, params.toUserId, params.message]
+				"INSERT INTO message (`from_user_id`,`to_user_id`,`message`,`from_block`) values (?,?,?,?)",
+				[params.fromUserId, params.toUserId, params.message,params.block_status]
 			);
 		} catch (error) {
 			console.warn(error);
 			return null;
 		}		
 	}
+	 
+	async checkBlockStatus(params) {
+		try{
+		
+		let checkExist =  await this.db.query(`SELECT count(*) as block_status FROM dialogs WHERE LOWER(from_user_id = ? AND to_user_id = ? )`, [params.from,  params.to]);
+			
+			if (checkExist[0].block_status == 0) {
+				
+				return checkExist
+			} else {
+				return await this.db.query(`SELECT block_status as block_status FROM dialogs WHERE LOWER(from_user_id = ? AND to_user_id = ? )`, [params.from,  params.to]);
+			}
+	
+		} catch(e) {
+			console.log(e)
+			return null
+		}
+	}
+
+	
+
+	async changeStatusBlock(params) {
+		try{
+			
+		let checkExist =  await this.db.query(`SELECT count(*) as count FROM dialogs WHERE LOWER(from_user_id = ? AND to_user_id = ? )`, [params.from,  params.to]);
+	
+			if (checkExist[0].count == 0) {
+				return await this.db.query(
+					"INSERT INTO dialogs (`from_user_id`,`to_user_id`,`block_status`) values (?,?,?)",
+					[params.from, params.to, params.blockStatus]
+					)
+			} else {
+				return await this.db.query(
+					`UPDATE dialogs SET block_status = ?  WHERE 
+					(from_user_id = ? AND to_user_id = ? ) `,[params.blockStatus, params.from,  params.to ])
+			}
+	
+		} catch(e) {
+			console.log(e)
+			return null
+		}
+	}
 
 	async getMessages(userId, toUserId){
 		try {
 			if (toUserId == 'all') {
 				return await this.db.query(
-					`SELECT id,from_user_id as fromUserId,to_user_id as toUserId,message,date FROM message WHERE 
+					`SELECT id,from_block as block_status,from_user_id as fromUserId,to_user_id as toUserId,message,date FROM message WHERE 
 						(to_user_id = ? ) ORDER BY id ASC				
 					`,
 					[toUserId]
 				)
 			} else {
 				return await this.db.query(
-					`SELECT id,from_user_id as fromUserId,to_user_id as toUserId,message,date FROM message WHERE 
+					`SELECT id,from_block as block_status,from_user_id as fromUserId,to_user_id as toUserId,message,date FROM message WHERE 
 						(from_user_id = ? AND to_user_id = ? )
 						OR
 						(from_user_id = ? AND to_user_id = ? )	ORDER BY id ASC				
