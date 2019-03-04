@@ -11,7 +11,10 @@ $('form .message a').on('click', e => {
 });
 
 function response (data) {
-  
+
+    if (data.token && data.userId) {
+        localStorage.setItem(data.userId, data.token );
+    }
     let resp = data.responseText;
     try {
         if (data.message != void (0)) {
@@ -19,6 +22,7 @@ function response (data) {
         } else {
             resp = JSON.parse(data.responseText);
             resp = resp.message;
+            
         }
     } catch (e) {}
     return resp;

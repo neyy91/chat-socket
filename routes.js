@@ -37,6 +37,8 @@ function verifyToken(req, res, next) {
 		//check redis
 		cache.get(userus[0], function (error, entries) {
 
+			// console.log("---entries----",entries[0].body)
+
 			if (error) {
 				res.sendStatus(403);
 			}
@@ -219,7 +221,7 @@ class Routes {
 					response.status(401).json(loginRes);
 				} else {
 					loginRes.error = false;
-					loginRes.userId = result[0].id;
+					loginRes.userId = request.body.username;
 					loginRes.message = `User logged in.`;
 					loginRes.url = path.join(__dirname + '/client/views/auth.html');
 
@@ -229,12 +231,12 @@ class Routes {
 						username: request.body.username
 					});
 
-					
+		
 					response.cookie('token', token, {
 						httpOnly: true
 					});
 
-					
+					loginRes.token = token
 					response.status(200).json(loginRes);
 				}
 			}

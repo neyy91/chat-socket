@@ -27,10 +27,14 @@ $(".logout-btn").on('click', e => {
         url: '/logout',
         type: 'POST',
         data: {},
+        beforeSend: (request) => {
+            request.setRequestHeader("authorization", currentUser + ' ' + localStorage.getItem(currentUser));
+        },
         success: (res) => {
             alert(response(res));
             // location.reload();
             location.href = '/';
+            localStorage.removeItem(currentUser);
         },
         error: (res) => {
             alert(response(res));
@@ -69,7 +73,7 @@ function changeStatusBlock(blockStatus) {
 
         },
         beforeSend: (request) => {
-            request.setRequestHeader("authorization", 'test - checkToken');
+            request.setRequestHeader("authorization", currentUser + ' ' + localStorage.getItem(currentUser));
         },
         success: (res) => {
             alert(response(res));
