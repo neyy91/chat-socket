@@ -38,6 +38,7 @@ function verifyToken(req, res, next) {
 		cache.get(userus[0], function (error, entries) {
 
 			// console.log("---entries----",entries[0].body)
+			// console.log("---entries----",entries)
 
 			if (error) {
 				res.sendStatus(403);

@@ -10,7 +10,7 @@ function auth(socket, next) {
 
     // Parse cookie
     cookieParser()(socket.request, socket.request.res, () => {
-
+       
     });
 
     // JWT authenticate
@@ -60,7 +60,7 @@ class Socket {
                 this.io.emit('chat-list-all-response', {
                     list: list,
                     username: socket.username
-                } )
+                })
             })
 
             // get the user's Chat list
@@ -110,21 +110,21 @@ class Socket {
                 } else {
 
                     let checkBlockStatus = await helper.checkBlockStatus({
-                        to : socket.username,
+                        to: socket.username,
                         from: data.toUserId
                     })
-                    
+
                     const objNewMsg = {
                         toUserId: data.toUserId,
                         message: data.message,
                         fromUserId: socket.username,
-                        block_status: checkBlockStatus[0].block_status,   
+                        block_status: checkBlockStatus[0].block_status,
                         date: new Date()
                     };
 
-                   
+
                     await helper.insertMessages(objNewMsg);
-                   
+
 
                     this.io.to('all').emit("add-message-response", objNewMsg);
                 }
@@ -178,16 +178,23 @@ class Socket {
     socketConfig() {
 
         this.io.use(async (socket, next) => {
-            let userId = socket.request._query['userId'];
-            let userSocketId = socket.id;
-            
-            const response = await helper.addSocketId(userId, userSocketId);
+            auth(socket, async (guest, user) => {
+               
+                if (!guest) {
+                    // let userId = socket.request._query['userId'];
+                    let userId = user.id
+                    let userSocketId = socket.id;
+                    
+                    const response = await helper.addSocketId(userId, userSocketId);
 
-            if (response && response !== null) {
-                next();
-            } else {
-                console.error(`connection failed, user Id ${userId}.`);
-            }
+                    if (response && response !== null) {
+                        next();
+                    } else {
+                        console.error(`connection failed, user Id ${userId}.`);
+                    }
+                }
+            })
+
         });
 
         this.socketEvents();
