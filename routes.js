@@ -37,9 +37,6 @@ function verifyToken(req, res, next) {
 		//check redis
 		cache.get(userus[0], function (error, entries) {
 
-			// console.log("---entries----",entries[0].body)
-			// console.log("---entries----",entries)
-
 			if (error) {
 				res.sendStatus(403);
 			}
@@ -56,6 +53,67 @@ function verifyToken(req, res, next) {
 		res.sendStatus(403);
 	}
 
+}
+
+function addToCash(data) {
+	return new Promise((resolve, reject) => {
+		try{
+			resolve(cache.add(data.user, JSON.stringify(data)))
+		} catch(e) {
+			reject(e)
+		}
+		
+	})
+}
+
+function getUpdate(userRequest, blockStatus, userChange) {
+	return new Promise(resolve => {
+		cache.get(userRequest, function (error, entries) {
+			if (error) {
+				console.log("error change blockStauts", error)
+			}
+			if (entries[0] && entries[0] && entries[0].body) {
+
+				let body = typeof (entries[0].body) == 'string' ? JSON.parse(entries[0].body) : entries[0].body
+
+				if (!body.blockList) {
+					body.blockList = []
+				}
+				let index = body.blockList.indexOf(userChange)
+
+
+				if (blockStatus == 'true') {
+					if (index == -1) {
+
+						body.blockList.push(userChange)
+					}
+
+				} else {
+					if (index != -1) {
+
+						body.blockList.splice(index, 1)
+					}
+				}
+
+				resolve(body)
+
+			} else {
+
+				// console.log("not in cash info", entries[0])
+				var blockList = []
+				if (blockStatus == 'true') {
+					blockList.push(userChange)
+				}
+
+				resolve({
+					user: userRequest,
+					blockList: blockList
+				})
+
+			}
+
+		})
+	})
 }
 
 
@@ -88,7 +146,7 @@ class Routes {
 			})
 
 		})
-		
+
 		this.app.post('/api/token', (req, res) => {
 
 			const user = {
@@ -121,15 +179,22 @@ class Routes {
 		})
 
 		this.app.post('/changeStatusBlock', verifyToken, async (request, response) => {
-
+			let userRequest = request.body.currentUser
 			let dataChange = {
-				from: request.body.currentUser,
+				from: userRequest,
 				to: request.body.userChange,
 				blockStatus: request.body.blockStatus == 'true' ? 1 : 0
 			}
-			let textAlert ='change status ' + ( request.body.blockStatus == 'true' ? 'block : ' : 'unblock : ') + request.body.userChange
+
+			let textAlert = 'change status ' + (request.body.blockStatus == 'true' ? 'block : ' : 'unblock : ') + request.body.userChange
 			try {
 				await helper.changeStatusBlock(dataChange)
+				try {
+					// let updateBody = await getUpdate(userRequest, request.body.blockStatus, request.body.userChange)
+					// let newCashInfo = await addToCash(updateBody)
+				} catch (e) {
+					console.log(e)
+				}
 
 				response.status(200).json({
 					error: false,
@@ -232,7 +297,7 @@ class Routes {
 						username: request.body.username
 					});
 
-		
+
 					response.cookie('token', token, {
 						httpOnly: true
 					});

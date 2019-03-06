@@ -6,6 +6,10 @@ const helper = require('./dbEvents');
 const cookieParser = require('cookie-parser');
 const passport = require('passport');
 
+var cache = require('express-redis-cache')({
+	client: require('redis').createClient()
+})
+
 function auth(socket, next) {
 
     // Parse cookie
@@ -125,7 +129,10 @@ class Socket {
 
                     await helper.insertMessages(objNewMsg);
 
-
+                    //check in redis block
+                    cache.get(socket.username, function (error, entries) {
+                    })
+                    
                     this.io.to('all').emit("add-message-response", objNewMsg);
                 }
             });
@@ -157,11 +164,12 @@ class Socket {
             //disconect from socket.
 
             socket.on('disconnect', async () => {
+               
                 const isLoggedOut = await helper.logoutUser(socket.id);
                 setTimeout(async () => {
                     const isLoggedOut = await helper.isUserLoggedOut(socket.id);
                     if (isLoggedOut && isLoggedOut !== null) {
-                        console.log("---check reload---")
+                        // console.log("---check reload---")
                         socket.broadcast.emit('chat-list-response', {
                             error: false,
                             userDisconnected: true,
