@@ -57,12 +57,24 @@ function verifyToken(req, res, next) {
 
 function addToCash(data) {
 	return new Promise((resolve, reject) => {
-		try{
-			resolve(cache.add(data.user, JSON.stringify(data)))
-		} catch(e) {
+		try {
+			cache.add(data.user, JSON.stringify(data), {
+					expire: 60 * 60 * 24,
+					type: 'json'
+				},
+				function (error, added) {
+					if (error) {
+						console.log('error-----', error)
+						resolve(error)
+					}
+					console.log("--added---", added)
+					resolve(added)
+				});
+
+		} catch (e) {
 			reject(e)
 		}
-		
+
 	})
 }
 
@@ -190,8 +202,8 @@ class Routes {
 			try {
 				await helper.changeStatusBlock(dataChange)
 				try {
-					// let updateBody = await getUpdate(userRequest, request.body.blockStatus, request.body.userChange)
-					// let newCashInfo = await addToCash(updateBody)
+					let updateBody = await getUpdate(userRequest, request.body.blockStatus, request.body.userChange)
+					let newCashInfo = await addToCash(updateBody)
 				} catch (e) {
 					console.log(e)
 				}

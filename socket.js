@@ -131,6 +131,7 @@ class Socket {
 
                     //check in redis block
                     cache.get(socket.username, function (error, entries) {
+                        console.log("enter--->>>\n",entries,"\n")
                     })
                     
                     this.io.to('all').emit("add-message-response", objNewMsg);
