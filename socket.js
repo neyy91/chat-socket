@@ -7,14 +7,14 @@ const cookieParser = require('cookie-parser');
 const passport = require('passport');
 
 var cache = require('express-redis-cache')({
-	client: require('redis').createClient()
+    client: require('redis').createClient()
 })
 
 function auth(socket, next) {
 
     // Parse cookie
     cookieParser()(socket.request, socket.request.res, () => {
-       
+
     });
 
     // JWT authenticate
@@ -34,11 +34,40 @@ function auth(socket, next) {
 
 }
 
+function addMsgAndSend(data, sender, index) {
+    return new Promise((resolve, reject) => {
+        const objNewMsg = {
+            toUserId: data.toUserId,
+            message: data.message,
+            fromUserId: sender,
+            block_status: (index == -1 ? 0 : 1),
+            date: new Date()
+        };
+
+        helper.insertMessages(objNewMsg)
+            .then(res => {
+                if (res) {
+                    resolve(objNewMsg)    
+                } else {
+                    resolve(false)
+                }
+            })
+            .catch(e => {
+                console.log(e)
+                reject(e)
+            })
+    })
+
+}
+
+
 class Socket {
 
     constructor(socket) {
         this.io = socket;
     }
+
+
 
     socketEvents() {
 
@@ -98,43 +127,47 @@ class Socket {
 
 
             socket.on('add-message', async (data) => {
-
+                let self = this;
                 if (data.message === '') {
 
-                    this.io.to(socket.id).emit(`add-message-response`, `Message cant be empty`);
+                    self.io.to(socket.id).emit(`add-message-response`, `Message cant be empty`);
 
                 } else if (data.fromUserId === '') {
 
-                    this.io.to(socket.id).emit(`add-message-response`, `Unexpected error, Login again.`);
+                    self.io.to(socket.id).emit(`add-message-response`, `Unexpected error, Login again.`);
 
                 } else if (data.toUserId === '') {
 
-                    this.io.to(socket.id).emit(`add-message-response`, `Select a user to chat.`);
+                    self.io.to(socket.id).emit(`add-message-response`, `Select a user to chat.`);
 
                 } else {
 
-                    let checkBlockStatus = await helper.checkBlockStatus({
-                        to: socket.username,
-                        from: data.toUserId
-                    })
-
-                    const objNewMsg = {
-                        toUserId: data.toUserId,
-                        message: data.message,
-                        fromUserId: socket.username,
-                        block_status: checkBlockStatus[0].block_status,
-                        date: new Date()
-                    };
-
-
-                    await helper.insertMessages(objNewMsg);
 
                     //check in redis block
-                    cache.get(socket.username, function (error, entries) {
-                        console.log("enter--->>>\n",entries,"\n")
+                    cache.get(data.toUserId, async function (error, entries) {
+                        // console.log("enter--->>>\n", entries, "\n")
+                        if (error) {
+                            console.log("error get cash")
+                        }
+                        if (entries.length > 0) {
+                            let infoFromCache = entries && entries[0].body
+                            let dataCache = typeof (infoFromCache) == 'string' ? JSON.parse(infoFromCache) : infoFromCache
+
+                            let index = dataCache.blockList.indexOf(socket.username)
+                          
+
+                            let objNewMsg = await addMsgAndSend(data, socket.username, index)
+                            if (objNewMsg) {
+                                self.io.to('all').emit("add-message-response", objNewMsg);
+                            }
+                         
+                        } else {
+                            let objNewMsg = await addMsgAndSend(data, socket.username, -1)
+                            if (objNewMsg) {
+                                self.io.to('all').emit("add-message-response", objNewMsg);
+                            }
+                        }
                     })
-                    
-                    this.io.to('all').emit("add-message-response", objNewMsg);
                 }
             });
 
@@ -165,7 +198,7 @@ class Socket {
             //disconect from socket.
 
             socket.on('disconnect', async () => {
-               
+
                 const isLoggedOut = await helper.logoutUser(socket.id);
                 setTimeout(async () => {
                     const isLoggedOut = await helper.isUserLoggedOut(socket.id);
@@ -188,12 +221,12 @@ class Socket {
 
         this.io.use(async (socket, next) => {
             auth(socket, async (guest, user) => {
-               
+
                 if (!guest) {
                     // let userId = socket.request._query['userId'];
                     let userId = user.id
                     let userSocketId = socket.id;
-                    
+
                     const response = await helper.addSocketId(userId, userSocketId);
 
                     if (response && response !== null) {
