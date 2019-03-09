@@ -7,7 +7,16 @@ function _clearVars() {
     $("li").remove()
 }
 
+function changeBlockList(newBlockList) {
+    document.getElementById('blockList').innerHTML = newBlockList.join();
+}
+
 function response(data) {
+
+    if (data.newBlockList) {
+        changeBlockList(data.newBlockList)
+    }
+    
     let resp = data.responseText || 'success';
     try {
         if (data.message != void(0)) {
@@ -59,7 +68,6 @@ function changeChat() {
 
 function changeStatusBlock(blockStatus) {
     var changeStatusUser = blockStatus ? 'selectBlock' : 'selectUnblock'
-    // _clearVars()
     var user = document.getElementById(changeStatusUser).value;
    
 
@@ -93,6 +101,10 @@ $(document).ready(() => {
         _clearVars()
         document.getElementById('name').innerHTML = result.userId;
         currentUser = result.userId
+        
+        if (result.newBlockList) {
+            changeBlockList(result.newBlockList)
+        }
 
         socket.emit('receiveHistory', currentChat);
         socket.emit('chat-list-all', 'all')

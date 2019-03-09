@@ -200,17 +200,19 @@ class Routes {
 
 			let textAlert = 'change status ' + (request.body.blockStatus == 'true' ? 'block : ' : 'unblock : ') + request.body.userChange
 			try {
-				await helper.changeStatusBlock(dataChange)
+				let changeResult = await helper.changeStatusBlock(dataChange)
 				try {
 					let updateBody = await getUpdate(userRequest, request.body.blockStatus, request.body.userChange)
 					let newCashInfo = await addToCash(updateBody)
+					
 				} catch (e) {
 					console.log(e)
 				}
 
 				response.status(200).json({
 					error: false,
-					message: textAlert
+					message: textAlert,
+					newBlockList: changeResult
 				});
 			} catch (e) {
 				response.status(403).json({

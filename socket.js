@@ -47,7 +47,7 @@ function addMsgAndSend(data, sender, index) {
         helper.insertMessages(objNewMsg)
             .then(res => {
                 if (res) {
-                    resolve(objNewMsg)    
+                    resolve(objNewMsg)
                 } else {
                     resolve(false)
                 }
@@ -76,13 +76,23 @@ class Socket {
 
             auth(socket, (guest, user) => {
                 if (!guest) {
-                    socket.join('all');
-                    console.log("socket id----", socket.id)
-                    socket.username = user.username;
-                    socket.emit('connected', {
-                        msg: `you are connected to chat as ${user.username}`,
-                        userId: user.username
-                    });
+                    helper.getBlockList(user.username)
+                        .then(blockList => {
+            
+                            socket.join('all');
+                            console.log("socket id----", socket.id)
+                            socket.username = user.username;
+
+                            socket.emit('connected', {
+                                msg: `you are connected to chat as ${user.username}`,
+                                userId: user.username,
+                                newBlockList: blockList
+                            });
+                            
+                        })
+                        .catch(e => {
+                            console.log("error user",e)
+                        })
                 } else {
                     console.log("--user---", guest)
                 }
@@ -128,6 +138,7 @@ class Socket {
 
             socket.on('add-message', async (data) => {
                 let self = this;
+
                 if (data.message === '') {
 
                     self.io.to(socket.id).emit(`add-message-response`, `Message cant be empty`);
@@ -154,13 +165,13 @@ class Socket {
                             let dataCache = typeof (infoFromCache) == 'string' ? JSON.parse(infoFromCache) : infoFromCache
 
                             let index = dataCache.blockList.indexOf(socket.username)
-                          
+
 
                             let objNewMsg = await addMsgAndSend(data, socket.username, index)
                             if (objNewMsg) {
                                 self.io.to('all').emit("add-message-response", objNewMsg);
                             }
-                         
+
                         } else {
                             let objNewMsg = await addMsgAndSend(data, socket.username, -1)
                             if (objNewMsg) {
