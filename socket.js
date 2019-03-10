@@ -60,6 +60,32 @@ function addMsgAndSend(data, sender, index) {
 
 }
 
+function getUpdate(userRequest,socketId) {
+	
+		cache.get(userRequest, function (error, entries) {
+
+            let data = typeof (entries[0].body) == 'string' ? JSON.parse(entries[0].body) : entries[0].body
+          
+            data = Object.assign(data || {}, {
+                socketId: socketId
+            }) 
+
+            // console.log("update\n\n",data )
+
+            cache.add(userRequest, JSON.stringify(data), {
+                expire: 60 * 60 * 24,
+                type: 'json'
+            },
+            function (error, added) {
+                if (error) {
+                    console.log('error-----', error)
+                }
+                console.log("--added---", added)
+               
+            });
+
+        })
+}
 
 class Socket {
 
@@ -80,7 +106,7 @@ class Socket {
                         .then(blockList => {
             
                             socket.join('all');
-                            console.log("socket id----", socket.id)
+                           
                             socket.username = user.username;
 
                             socket.emit('connected', {
@@ -88,6 +114,8 @@ class Socket {
                                 userId: user.username,
                                 newBlockList: blockList
                             });
+
+                            getUpdate(user.username,socket.id)
                             
                         })
                         .catch(e => {
