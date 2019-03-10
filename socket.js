@@ -1,5 +1,11 @@
 'use strict';
-
+const sEvent = {
+    newMsg: 'add-message-response',
+    logout: 'logout-response',
+    history: 'history',
+    chatList: 'chat-list-response',
+    chatListAll: 'chat-list-all-response'
+}
 const path = require('path');
 const helper = require('./dbEvents');
 
@@ -60,19 +66,19 @@ function addMsgAndSend(data, sender, index) {
 
 }
 
-function getUpdate(userRequest,socketId) {
-	
-		cache.get(userRequest, function (error, entries) {
+function getUpdate(userRequest, socketId) {
 
-            let data = typeof (entries[0].body) == 'string' ? JSON.parse(entries[0].body) : entries[0].body
-          
-            data = Object.assign(data || {}, {
-                socketId: socketId
-            }) 
+    cache.get(userRequest, function (error, entries) {
 
-            // console.log("update\n\n",data )
+        let data = typeof (entries[0].body) == 'string' ? JSON.parse(entries[0].body) : entries[0].body
 
-            cache.add(userRequest, JSON.stringify(data), {
+        data = Object.assign(data || {}, {
+            socketId: socketId
+        })
+
+        // console.log("update\n",data,"\n" )
+
+        cache.add(userRequest, JSON.stringify(data), {
                 expire: 60 * 60 * 24,
                 type: 'json'
             },
@@ -81,10 +87,10 @@ function getUpdate(userRequest,socketId) {
                     console.log('error-----', error)
                 }
                 console.log("--added---", added)
-               
+
             });
 
-        })
+    })
 }
 
 class Socket {
@@ -104,9 +110,9 @@ class Socket {
                 if (!guest) {
                     helper.getBlockList(user.username)
                         .then(blockList => {
-            
+
                             socket.join('all');
-                           
+
                             socket.username = user.username;
 
                             socket.emit('connected', {
@@ -115,11 +121,11 @@ class Socket {
                                 newBlockList: blockList
                             });
 
-                            getUpdate(user.username,socket.id)
-                            
+                            getUpdate(user.username, socket.id)
+
                         })
                         .catch(e => {
-                            console.log("error user",e)
+                            console.log("error user", e)
                         })
                 } else {
                     console.log("--user---", guest)
@@ -128,7 +134,7 @@ class Socket {
 
             socket.on('chat-list-all', async () => {
                 let list = await helper.getAllList()
-                this.io.emit('chat-list-all-response', {
+                this.io.emit(sEvent.chatListAll, {
                     list: list,
                     username: socket.username
                 })
@@ -143,16 +149,16 @@ class Socket {
                     chatListResponse.error = true;
                     chatListResponse.message = `User does not exits.`;
 
-                    this.io.emit('chat-list-response', chatListResponse);
+                    this.io.emit(sEvent.chatList, chatListResponse);
                 } else {
                     const result = await helper.getChatList(userId, socket.id);
-                    this.io.to(socket.id).emit('chat-list-response', {
+                    this.io.to(socket.id).emit(sEvent.chatList, {
                         error: result !== null ? false : true,
                         singleUser: false,
                         chatList: result.chatlist
                     });
 
-                    socket.broadcast.emit('chat-list-response', {
+                    socket.broadcast.emit(sEvent.chatList, {
                         error: result !== null ? false : true,
                         singleUser: true,
                         chatList: result.userinfo
@@ -169,15 +175,15 @@ class Socket {
 
                 if (data.message === '') {
 
-                    self.io.to(socket.id).emit(`add-message-response`, `Message cant be empty`);
+                    self.io.to(socket.id).emit(sEvent.newMsg, `Message cant be empty`);
 
                 } else if (data.fromUserId === '') {
 
-                    self.io.to(socket.id).emit(`add-message-response`, `Unexpected error, Login again.`);
+                    self.io.to(socket.id).emit(sEvent.newMsg, `Unexpected error, Login again.`);
 
                 } else if (data.toUserId === '') {
 
-                    self.io.to(socket.id).emit(`add-message-response`, `Select a user to chat.`);
+                    self.io.to(socket.id).emit(sEvent.newMsg, `Select a user to chat.`);
 
                 } else {
 
@@ -192,18 +198,24 @@ class Socket {
                             let infoFromCache = entries && entries[0].body
                             let dataCache = typeof (infoFromCache) == 'string' ? JSON.parse(infoFromCache) : infoFromCache
 
-                            let index = dataCache.blockList.indexOf(socket.username)
+                            let index = dataCache.blockList && dataCache.blockList.indexOf(socket.username) || dataCache.blocklistArray.indexOf(socket.username)
 
 
                             let objNewMsg = await addMsgAndSend(data, socket.username, index)
-                            if (objNewMsg) {
-                                self.io.to('all').emit("add-message-response", objNewMsg);
+
+                            if (data.toUserId == 'all') {
+                                self.io.to('all').emit(sEvent.newMsg, objNewMsg);
+                            } else {
+                                if (self.io.sockets.connected[dataCache.socketId] && index == -1) {
+                                    self.io.sockets.connected[dataCache.socketId].emit(sEvent.newMsg, objNewMsg)
+                                }
+                                self.io.sockets.connected[socket.id].emit(sEvent.newMsg, objNewMsg)
                             }
 
                         } else {
                             let objNewMsg = await addMsgAndSend(data, socket.username, -1)
                             if (objNewMsg) {
-                                self.io.to('all').emit("add-message-response", objNewMsg);
+                                self.io.to('all').emit(sEvent.newMsg, objNewMsg);
                             }
                         }
                     })
@@ -215,7 +227,7 @@ class Socket {
 
             socket.on('logout', async () => {
                 const isLoggedOut = await helper.logoutUser(socket.id);
-                this.io.to(socket.id).emit('logout-response', {
+                this.io.to(socket.id).emit(sEvent.logout, {
                     error: false
                 });
                 console.log("------close-----")
@@ -227,8 +239,7 @@ class Socket {
 
                 let getHistory = await helper.getMessages(socket.username, chatId)
 
-                // this.io.to('all').emit("history", [getHistory]);
-                this.io.to('all').emit("history", {
+                this.io.to('all').emit(sEvent.history, {
                     requestUser: socket.username,
                     history: getHistory
                 });
@@ -243,7 +254,7 @@ class Socket {
                     const isLoggedOut = await helper.isUserLoggedOut(socket.id);
                     if (isLoggedOut && isLoggedOut !== null) {
                         // console.log("---check reload---")
-                        socket.broadcast.emit('chat-list-response', {
+                        socket.broadcast.emit(sEvent.chatList, {
                             error: false,
                             userDisconnected: true,
                             socketId: socket.id
